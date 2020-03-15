@@ -1,7 +1,7 @@
 import random
 from board import Board, RED_HOLES, RED_MANCALA, BLUE_MANCALA, BLUE_HOLES, N
 
-# BOARD = Board(N)
+
 
 # TODO: def heuristics1()
 
@@ -12,8 +12,8 @@ from board import Board, RED_HOLES, RED_MANCALA, BLUE_MANCALA, BLUE_HOLES, N
 # TODO: calculate_point():
 
 
-def payoff(board, move, player):
-    new_board = Board(board)
+def payoff(board, player):
+    board = board.board
     if player == 'red':
         # new_board.red_moves(move, clockwise=True)
         return (board[0] + board[12]) - (board[6] + board[18])
@@ -43,18 +43,45 @@ def get_available_moves(board, player):
     return moves
 
 
+count = 0
 def mini_max(depth, board, player):
-    if depth > 5 or is_game_over(board):
-
+    global count
+    count +=1
+    print(board.board, count)
+    if depth > 2 or is_game_over(board.board):
+        print("payoff:", payoff(board,player))
+        return payoff(board,player), None
     if player == 'red':
-        best_value = -10 * N
-        max_moves = get_available_moves(board, 'red')
+        best_value = (-10 * N), None  # best_value (score, move)
+        max_moves = get_available_moves(board.board, 'red')
         if max_moves == []:
             val = mini_max(depth+1, board, 'blue')
             if val > best_value:
-                best_value = val
+                best_value = val, None
         for move in max_moves:
-            val = mini_max(depth+1, board, (move, board, 1, True))
+            cw_move_result = board.red_moves(index=move) # clockwise move
+            ccw_move_result = board.red_moves(index=move, clockwise=False) # counter-clockwise move
+
+            cw_val = mini_max(depth+1, Board(cw_move_result[0]), 'blue')
+            ccw_val = mini_max(depth + 1, Board(ccw_move_result[0]), 'blue')
+            best_value = max(cw_val[0], ccw_val[0], best_value[0]), move
+        return best_value
+
+    elif player == 'blue':
+        best_value = (10 * N), None
+        max_moves = get_available_moves(board.board, 'blue')
+        if max_moves == []:
+            val = mini_max(depth + 1, board, 'red')
+            if val > best_value:
+                best_value = val, None
+        for move in max_moves:
+            cw_move_result = board.red_moves(index=move)  # clockwise move
+            ccw_move_result = board.red_moves(index=move, clockwise=False)  # counter-clockwise move
+            cw_val = mini_max(depth + 1, Board(cw_move_result[0]), 'red')
+            ccw_val = mini_max(depth + 1, Board(ccw_move_result[0]), 'red')
+            best_value = max(cw_val[0], ccw_val[0], best_value[0]), move
+        return best_value
+
 
 # def if_pass_opponent_mancala(board, move):
 #     if move > 0:
@@ -62,13 +89,26 @@ def mini_max(depth, board, player):
 
 
 def run_game():
-    board = Board(N)
+    board = Board()
     board.display()
-    first_player =  random.choice(random.choice(['red', 'blue']))
+    first_player = random.choice(random.choice(['red', 'blue']))
     while not is_game_over(board):
-        # 1: clockwise move hole 1,  -1 counterclockwise move hole 1
-        move = int(input('Please choose a hole and a direction to move: {}'.format(get_available_moves(board, 'red'))))
-        if move > 0:
-            board.red_moves(index=move)
-        else:
-            board.red_moves(index=move, clockwise=False)
+        if first_player == 'red':
+            available_moves = get_available_moves(board, 'red')
+            move = int(input('Please choose a hole to move: {}'.format(available_moves)))
+            if move not in available_moves:
+                print('Invalid move input: {}'.format(move))
+                return
+            direction = int(input('Please choose a direction to move: 1. clockwise 2. counterclockwise'))
+            if direction == 1:
+                direction = True
+            elif direction == 2:
+                direction = False
+            else:
+                print('Invalid direction input: {}'.format(dir))
+                return
+            move_result = board.red_moves(index=move, clockwise=dir)
+
+
+BOARD = Board()
+print(mini_max(0,board=BOARD, player='red'))
