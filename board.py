@@ -6,6 +6,7 @@ BLUE_MANCALA = [6, 18]
 BLUE_HOLES = [4, 5, 6, 7, 8, 9, 16, 17, 19, 20, 21]
 N = 4
 
+
 # When start to move, return the next index of pit
 def next_index(index, clockwise=True):
     if clockwise:
@@ -46,6 +47,32 @@ class Board:
         else:
             self.board = [0, N, N, N, N, N, 0, N, N, N, N, N, 0, N, N, N, N, N, 0, N, N, N, N, N]
 
+    def pretty(self):
+        cprint(str(self.board[0]) + ' ', 'red', attrs=['bold'], end='')
+        cprint(str(self.board[1]) + ' ', 'red', end='')
+        cprint(str(self.board[2]) + ' ', 'red', end='')
+        cprint(str(self.board[3]) + ' ', 'red', end='')
+        cprint(str(self.board[4]) + ' ', 'blue', end='')
+        cprint(str(self.board[5]) + ' ', 'blue', end='')
+        cprint(str(self.board[6]) + ' ', 'blue', attrs=['bold'], end='')
+        cprint(str(self.board[7]) + ' ', 'blue', end='')
+        cprint(str(self.board[8]) + ' ', 'blue', end='')
+        cprint(str(self.board[9]) + ' ', 'blue', end='')
+        cprint(str(self.board[10]) + ' ', 'red', end='')
+        cprint(str(self.board[11]) + ' ', 'red', end='')
+        cprint(str(self.board[12]) + ' ', 'red', attrs=['bold'], end='')
+        cprint(str(self.board[13]) + ' ', 'red', end='')
+        cprint(str(self.board[14]) + ' ', 'red', end='')
+        cprint(str(self.board[15]) + ' ', 'red', end='')
+        cprint(str(self.board[16]) + ' ', 'blue', end='')
+        cprint(str(self.board[17]) + ' ', 'blue', end='')
+        cprint(str(self.board[18]) + ' ', 'blue', attrs=['bold'], end='')
+        cprint(str(self.board[19]) + ' ', 'blue', end='')
+        cprint(str(self.board[20]) + ' ', 'blue', end='')
+        cprint(str(self.board[21]) + ' ', 'blue', end='')
+        cprint(str(self.board[22]) + ' ', 'red', end='')
+        cprint(str(self.board[23]) + ' ', 'red')
+
     def display(self):
         '''
         Board View:                     Index
@@ -78,6 +105,7 @@ class Board:
         cprint(' '*8 + str(self.board[18]), 'blue', attrs=['bold'])
 
     def red_moves(self, index, clockwise=True, skip_opponent_mancala=False):
+        payoff = 0
         play_again = False
         obtain_adjacent = None
         board = self.board[:]
@@ -101,10 +129,12 @@ class Board:
                         board[index] -= 2
                         # place them in his Mancalas.
                         board[0] += 2
+                        payoff += 2
                     else:
                         board[index] -= 1
                         board[0] += 1
-            # if the red player drops a stone the last stone
+                        payoff += 1
+            # if the red player drops the last stone
             elif number_of_stones == 0:
                 if index in RED_MANCALA:
                     play_again = True
@@ -113,12 +143,18 @@ class Board:
                     adjacent_holes_list = adjacent_holes_indices(index)
                     obtain_adjacent = adjacent_holes_list
                 board[index] += 1
+                payoff += 1
+            # if red player pass his mancala,
+            elif index in RED_MANCALA:
+                board[index] += 1
+                payoff +=1
             else:
                 board[index] += 1
-        return board, play_again, obtain_adjacent
+        return board, payoff, play_again, obtain_adjacent
 
     def blue_moves(self, index, clockwise=True, skip_opponent_mancala=False):
         board = self.board[:]
+        payoff = 0
         play_again = False
         obtain_adjacent = None
         #  grab stones
@@ -141,9 +177,11 @@ class Board:
                         board[index] -= 2
                         # place them in his's Mancalas.
                         board[6] += 2
+                        payoff += 2
                     else:
                         board[index] -= 1
                         board[6] += 1
+                        payoff += 1
             # if the blue player drops a stone into his own Mancala, and it was the
             # last stone in his hand, he gets to play again
             elif number_of_stones == 0:
@@ -154,9 +192,15 @@ class Board:
                     adjacent_holes_list = adjacent_holes_indices(index)
                     obtain_adjacent = adjacent_holes_list
                 board[index] += 1
+                payoff += 1
+            # if blue player pass his mancala,
+            elif index in BLUE_MANCALA:
+                board[index] += 1
+                payoff +=1
             else:
                 board[index] += 1
-        return board, play_again, obtain_adjacent
+        return board, payoff, play_again, obtain_adjacent
 
     def run_move(self, board):
         self.board = board
+        self.display()
