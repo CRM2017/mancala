@@ -1,9 +1,6 @@
 import random
 from board import Board, RED_HOLES, RED_MANCALA, BLUE_MANCALA, BLUE_HOLES, N
 
-# TODO: Alpha_Beta():
-
-
 def heuristics1(board, player):
     board = board.board
     if player == 'red':
@@ -14,6 +11,7 @@ def heuristics1(board, player):
 
 
 def heuristics2(board, player):
+    board = board.board
     score = 0
     if player == 'red':
         for index in RED_HOLES:
@@ -23,6 +21,7 @@ def heuristics2(board, player):
         for index in BLUE_HOLES:
             score += board[index]
         return score
+
 
 def get_most_stones_index(board, index_list):
     hole_index = -1
@@ -70,54 +69,58 @@ def switch_player(player):
     else:
         print('INPUT ERROR @func: switch_player()')
 
+
 count = 0
-def _mini_max(depth, board, player):
+def alpha_beta(depth, board, player, heuristics, alpha=-80, beta=80):
     global count
     count +=1
-    print('Node: {}'.format(count))
+    i = 0 # avoid cut less than 10
     board.pretty()
-    print("payoff {}:".format(player), heuristics1(board, player))
-    if depth > 2 or is_game_over(board.board):
-        return heuristics1(board, player), None
+    if heuristics == 1:
+        heuristics_score = heuristics1(board, 'red')
+    else :
+        heuristics_score = heuristics2(board, 'red')
+    # print('Node: {}'.format(count))
+    # print("payoff {}:".format(player), heuristics_score)
+    if depth == 0 or is_game_over(board.board):
+        return [heuristics_score, None]
     if player == 'red':
-        best_value = (-10 * N), None  # best_value (score, move)
+        best_value = [-20*N, None]  # best_value (score, move)
         max_moves = get_available_moves(board.board, 'red')
-        if max_moves == []:
-            val = _mini_max(depth+1, board, 'blue')
-            if val[0] > best_value[0]:
-                best_value = val[0], None
         for move in max_moves:
             cw_move_result = board.red_moves(index=move) # clockwise move
             ccw_move_result = board.red_moves(index=move, clockwise=False) # counter-clockwise move
-
-            cw_val = _mini_max(depth+1, Board(cw_move_result[0]), 'blue')
-            ccw_val = _mini_max(depth + 1, Board(ccw_move_result[0]), 'blue')
-            best_value = max(cw_val[0], ccw_val[0], best_value[0]), move
+            cw_val = alpha_beta(depth - 1, Board(cw_move_result[0]), switch_player(player), heuristics, alpha, beta)
+            ccw_val = alpha_beta(depth - 1, Board(ccw_move_result[0]), switch_player(player), heuristics, alpha, beta)
+            alpha = max(cw_val[0], ccw_val[0], best_value[0])
+            best_value = [alpha, move]
+            if alpha >= beta and i > 10:
+                break
+            i += 1
         return best_value
 
     elif player == 'blue':
-        best_value = (10 * N), None
+        best_value = [20*N, None]
         min_moves = get_available_moves(board.board, 'blue')
-        if min_moves == []:
-            val = _mini_max(depth + 1, board, 'red')
-            if val[0] < best_value[0]:
-                best_value = val[0], None
         for move in min_moves:
             cw_move_result = board.red_moves(index=move)  # clockwise move
             ccw_move_result = board.red_moves(index=move, clockwise=False)  # counter-clockwise move
-            cw_val = _mini_max(depth + 1, Board(cw_move_result[0]), 'red')
-            ccw_val = _mini_max(depth + 1, Board(ccw_move_result[0]), 'red')
-            best_value = min(cw_val[0], ccw_val[0], best_value[0]), move
+            cw_val = alpha_beta(depth - 1, Board(cw_move_result[0]), switch_player(player), heuristics, alpha, beta)
+            ccw_val = alpha_beta(depth - 1, Board(ccw_move_result[0]), switch_player(player), heuristics, alpha, beta)
+            beta = min(cw_val[0], ccw_val[0], best_value[0])
+            best_value = [beta, move]
+            if alpha >= beta:
+                break
         return best_value
 
 
-def run_max_move(depth, board, player):
+def run_max_move(depth, board, player, heuristics):
     best_value = [(-10 * N), None]  # best_value list [score, move]
     max_moves = get_available_moves(board.board, player)
-    if max_moves == []:
-        val = mini_max(depth + 1, board, switch_player(player))
-        if val[0] > best_value[0]:
-            best_value = [val[0], None]
+    # if max_moves == []:
+    #     val = mini_max(depth - 1, board, switch_player(player), heuristics)
+    #     if val[0] > best_value[0]:
+    #         best_value = [val[0], None]
     for move in max_moves:
         cw_move_result = None
         ccw_move_result = None
@@ -127,19 +130,19 @@ def run_max_move(depth, board, player):
         elif player == 'blue':
             cw_move_result = board.blue_moves(index=move)  # clockwise move
             ccw_move_result = board.blue_moves(index=move, clockwise=False)  # counter-clockwise move
-        cw_val = mini_max(depth + 1, Board(cw_move_result[0]), switch_player(player))
-        ccw_val = mini_max(depth + 1, Board(ccw_move_result[0]), switch_player(player))
+        cw_val = mini_max(depth - 1, Board(cw_move_result[0]), switch_player(player), heuristics)
+        ccw_val = mini_max(depth - 1, Board(ccw_move_result[0]), switch_player(player), heuristics)
         best_value = [max(cw_val[0], ccw_val[0], best_value[0]), move]
     return best_value
 
 
-def run_mini_move(depth, board, player):
+def run_mini_move(depth, board, player, heuristics):
     best_value = (10 * N), None
     min_moves = get_available_moves(board.board, player)
-    if min_moves == []:
-        val = mini_max(depth + 1, board, switch_player(player))
-        if val[0] < best_value[0]:
-            best_value = [val[0], None]
+    # if min_moves == []:
+    #     val = mini_max(depth - 1, board, switch_player(player), heuristics)
+    #     if val[0] < best_value[0]:
+    #         best_value = [val[0], None]
     for move in min_moves:
         cw_move_result = None
         ccw_move_result = None
@@ -149,25 +152,30 @@ def run_mini_move(depth, board, player):
         elif player == 'blue':
             cw_move_result = board.blue_moves(index=move)  # clockwise move
             ccw_move_result = board.blue_moves(index=move, clockwise=False)  # counter-clockwise move
-        cw_val = mini_max(depth + 1, Board(cw_move_result[0]), switch_player(player))
-        ccw_val = mini_max(depth + 1, Board(ccw_move_result[0]), switch_player(player))
+        cw_val = mini_max(depth - 1, Board(cw_move_result[0]), switch_player(player), heuristics)
+        ccw_val = mini_max(depth - 1, Board(ccw_move_result[0]), switch_player(player), heuristics)
         best_value = [min(cw_val[0], ccw_val[0], best_value[0]), move]
     return best_value
 
 
-def mini_max(depth, board, player):
+def mini_max(depth, board, player, heuristics):
     global count
     count +=1
-    print('Node: {}'.format(count))
     board.pretty()
-    print('payoff {}:'.format(player), heuristics1(board, 'red'))
-    if depth > 1 or is_game_over(board.board):
-        return [heuristics1(board, player), None]
+    if heuristics == 1:
+        heuristics_score = heuristics1(board, 'red')
+    else:
+        heuristics_score = heuristics2(board, 'red')
+    # print('Node: {}'.format(count))
+    # print('payoff {}:'.format(player), heuristics_score)
+    if depth == 0 or is_game_over(board.board):
+        return [heuristics_score, None]
     if player == 'red':
-        return run_max_move(depth, board, player)
+        return run_max_move(depth, board, player, heuristics)
 
     elif player == 'blue':
-        return run_mini_move(depth, board, player)
+        return run_mini_move(depth, board, player, heuristics)
+
 
 
 def run_game():
@@ -210,7 +218,7 @@ def run_game():
                     first_player = 'red'
         elif first_player == 'red':
             print('AI (Red) turn: ', end='')
-            move_index = _mini_max(0, board, player='red')[1] # mini_max return (payoff, move_index)
+            move_index = alpha_beta(2, board, player='red', heuristics=1)[1] # mini_max return (payoff, move_index)
             print('Moving index {}'.format(move_index))
             move_result = board.red_moves(index=move_index)
             board.run_move(move_result[0])
@@ -235,4 +243,6 @@ def run_game():
     calculate_score(board.board)
 
 BOARD = Board()
-print(mini_max(0,board=BOARD, player='red'))
+# print(mini_max(2,board=BOARD, player='red', heuristics=2))
+# print(alpha_beta(2,board=BOARD, player='red', heuristics=1))
+run_game()
