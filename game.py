@@ -1,22 +1,32 @@
 import random
 from board import Board, RED_HOLES, RED_MANCALA, BLUE_MANCALA, BLUE_HOLES, N
 
-
-# TODO: def heuristics1()
-
-# TODO: def heuristics2()
-
-# TODO: MiniMax():
 # TODO: Alpha_Beta():
-# TODO: calculate_point():
 
-def payoff(board, player):
+
+def heuristics1(board, player):
     board = board.board
     if player == 'red':
         # new_board.red_moves(move, clockwise=True)
         return (board[0] + board[12]) - (board[6] + board[18])
     else:
         return (board[6] + board[18]) - (board[0] + board[12])
+
+
+def get_most_stones_index(board, index_list):
+    hole_index = -1
+    stones = board[index_list[0]]
+    for index in index_list:
+        if board[index] > stones:
+            hole_index = index
+            stones = board[index]
+    return hole_index, stones
+
+
+def calculate_score(board):
+    red_score = board[0] + board[12]
+    blue_score = board[6] + board[18]
+    print('Final score: red with {}, blue with {}'.format(red_score, blue_score))
 
 
 def is_game_over(board):
@@ -49,29 +59,28 @@ def switch_player(player):
     else:
         print('INPUT ERROR @func: switch_player()')
 
-
 count = 0
-def mini_max(depth, board, player):
+def _mini_max(depth, board, player):
     global count
     count +=1
     print('Node: {}'.format(count))
     board.pretty()
-    print("payoff {}:".format(player), payoff(board, player))
-    if depth > 1 or is_game_over(board.board):
-        return payoff(board,player), None
+    print("payoff {}:".format(player), heuristics1(board, player))
+    if depth > 2 or is_game_over(board.board):
+        return heuristics1(board, player), None
     if player == 'red':
         best_value = (-10 * N), None  # best_value (score, move)
         max_moves = get_available_moves(board.board, 'red')
         if max_moves == []:
-            val = mini_max(depth+1, board, 'blue')
+            val = _mini_max(depth+1, board, 'blue')
             if val[0] > best_value[0]:
                 best_value = val[0], None
         for move in max_moves:
             cw_move_result = board.red_moves(index=move) # clockwise move
             ccw_move_result = board.red_moves(index=move, clockwise=False) # counter-clockwise move
 
-            cw_val = mini_max(depth+1, Board(cw_move_result[0]), 'blue')
-            ccw_val = mini_max(depth + 1, Board(ccw_move_result[0]), 'blue')
+            cw_val = _mini_max(depth+1, Board(cw_move_result[0]), 'blue')
+            ccw_val = _mini_max(depth + 1, Board(ccw_move_result[0]), 'blue')
             best_value = max(cw_val[0], ccw_val[0], best_value[0]), move
         return best_value
 
@@ -79,59 +88,140 @@ def mini_max(depth, board, player):
         best_value = (10 * N), None
         min_moves = get_available_moves(board.board, 'blue')
         if min_moves == []:
-            val = mini_max(depth + 1, board, 'red')
+            val = _mini_max(depth + 1, board, 'red')
             if val[0] < best_value[0]:
                 best_value = val[0], None
         for move in min_moves:
             cw_move_result = board.red_moves(index=move)  # clockwise move
             ccw_move_result = board.red_moves(index=move, clockwise=False)  # counter-clockwise move
-            cw_val = mini_max(depth + 1, Board(cw_move_result[0]), 'red')
-            ccw_val = mini_max(depth + 1, Board(ccw_move_result[0]), 'red')
+            cw_val = _mini_max(depth + 1, Board(cw_move_result[0]), 'red')
+            ccw_val = _mini_max(depth + 1, Board(ccw_move_result[0]), 'red')
             best_value = min(cw_val[0], ccw_val[0], best_value[0]), move
         return best_value
 
 
+def run_max_move(depth, board, player):
+    best_value = (-10 * N), None  # best_value (score, move)
+    max_moves = get_available_moves(board.board, player)
+    if max_moves == []:
+        val = mini_max(depth + 1, board, switch_player(player))
+        if val[0] > best_value[0]:
+            best_value = val[0], None
+    for move in max_moves:
+        cw_move_result = None
+        ccw_move_result = None
+        if player == 'red':
+            cw_move_result = board.red_moves(index=move)  # clockwise move
+            ccw_move_result = board.red_moves(index=move, clockwise=False)  # counter-clockwise move
+        elif player == 'blue':
+            cw_move_result = board.blue_moves(index=move)  # clockwise move
+            ccw_move_result = board.blue_moves(index=move, clockwise=False)  # counter-clockwise move
+        cw_val = mini_max(depth + 1, Board(cw_move_result[0]), switch_player(player))
+        ccw_val = mini_max(depth + 1, Board(ccw_move_result[0]), switch_player(player))
+        best_value = max(cw_val[0], ccw_val[0], best_value[0]), move
+    return best_value
+
+
+def run_mini_move(depth, board, player):
+    best_value = (10 * N), None
+    min_moves = get_available_moves(board.board, player)
+    if min_moves == []:
+        val = mini_max(depth + 1, board, switch_player(player))
+        if val[0] < best_value[0]:
+            best_value = val[0], None
+    for move in min_moves:
+        cw_move_result = None
+        ccw_move_result = None
+        if player == 'red':
+            cw_move_result = board.red_moves(index=move)  # clockwise move
+            ccw_move_result = board.red_moves(index=move, clockwise=False)  # counter-clockwise move
+        elif player == 'blue':
+            cw_move_result = board.blue_moves(index=move)  # clockwise move
+            ccw_move_result = board.blue_moves(index=move, clockwise=False)  # counter-clockwise move
+        cw_val = mini_max(depth + 1, Board(cw_move_result[0]), switch_player(player))
+        ccw_val = mini_max(depth + 1, Board(ccw_move_result[0]), switch_player(player))
+        best_value = min(cw_val[0], ccw_val[0], best_value[0]), move
+    return best_value
+
+
+def mini_max(depth, board, player):
+    global count
+    count +=1
+    print('Node: {}'.format(count))
+    board.pretty()
+    print("payoff {}:".format(player), heuristics1(board, player))
+    if depth > 2 or is_game_over(board.board):
+        return heuristics1(board, player), None
+    if player == 'red':
+        return run_max_move(depth, board, player)
+
+    elif player == 'blue':
+        return run_mini_move(depth, board, player)
+
+
 def run_game():
     board = Board()
+    print('Initial Board View:')
     board.display()
     global first_player
     first_player = random.choice(['red', 'blue'])
-    print('{} turn'.format(first_player))
     while not is_game_over(board.board):
-        if first_player == 'red':
-            available_moves = get_available_moves(board.board, 'red')
+        if first_player == 'blue':
+            print('Player (Blue) turn:')
+            available_moves = get_available_moves(board.board, 'Blue')
             move = int(input('Please choose a hole to move: {} '.format(available_moves)))
             if move not in available_moves:
                 print('Invalid move input: {} '.format(move))
-                return
-            direction = int(input('Please choose a direction to move: 1. clockwise 2. counterclockwise '))
-            if direction == 1:
-                direction = True
-            elif direction == 2:
-                direction = False
+                first_player = 'blue'
             else:
-                print('Invalid direction input: {} '.format(direction))
-                return
-            move_result = board.red_moves(index=move, clockwise=direction)
+                direction = int(input('Please choose a direction to move: 1. clockwise 2. counterclockwise '))
+                if direction == 1:
+                    direction = True
+                elif direction == 2:
+                    direction = False
+                else:
+                    print('Invalid direction input: {} '.format(direction))
+                    return
+                move_result = board.blue_moves(index=move, clockwise=direction)
+                board.run_move(move_result[0])
+                if move_result[3] is not None:
+                    eat = int(input('Please choose a hole to eat: {} '.format(move_result[3])))
+                    if eat not in move_result[3]:
+                        print('ERROR INPUT: invalid hole to eat {} '.format(eat))
+                        return
+                    else:
+                        board.eat(player='blue', eat_index=move)
+                        first_player = 'red'
+                if move_result[2]: # play again is true
+                    print('Blue player plays again!')
+                    first_player = 'blue'
+                else:
+                    first_player = 'red'
+        elif first_player == 'red':
+            print('AI (Red) turn: ', end='')
+            move_index = _mini_max(0, board, player='red')[1] # mini_max return (payoff, move_index)
+            print('Moving index {}'.format(move_index))
+            move_result = board.red_moves(index=move_index)
             board.run_move(move_result[0])
+
             if move_result[3] is not None:
-                eat = int(input('Please choose a hole to eat: {} '.format(move_result[3])))
-                if eat not in move_result[3]:
-                    print('ERROR INPUT: invalid hole to eat {} '.format(eat))
-            if move_result[2]: # play again is true
+                most_stones_index = get_most_stones_index(board.board, move_result[3])
+                print('AI (Red) eating {})'.format(most_stones_index))
+                board.eat(player='red', eat_index=most_stones_index)
                 first_player = 'red'
-                return
-            first_player = 'blue'
-        elif first_player == 'blue':
-            print('AI (blue) turn:')
-            move_index = mini_max(0, board, player='blue')[1] # mini_max return (payoff, move_index)
-            move_result = board.blue_moves(index=move_index)
-            board.run_move(move_result[0])
-            first_player = 'red'
-            return
+
+            if move_result[2]:  # play again is true
+                print('AI (Red) plays again!')
+                first_player = 'red'
+            else:
+                first_player = 'blue'
         else:
             print('ERROR INPUT @first player {} '.format(first_player))
             break
-    print('GAME OVER!')
 
-run_game()
+    print('GAME OVER!')
+    board.clear_board()
+    calculate_score(board.board)
+
+BOARD = Board()
+print(_mini_max(0,board=BOARD, player='red'))

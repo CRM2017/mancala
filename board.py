@@ -1,9 +1,9 @@
 from termcolor import cprint
 
-RED_HOLES = [0, 1, 2, 3, 10, 11, 13, 14, 15, 22, 23]
+RED_HOLES = [1, 2, 3, 10, 11, 13, 14, 15, 22, 23]
 RED_MANCALA = [0, 12]
 BLUE_MANCALA = [6, 18]
-BLUE_HOLES = [4, 5, 6, 7, 8, 9, 16, 17, 19, 20, 21]
+BLUE_HOLES = [4, 5, 7, 8, 9, 16, 17, 19, 20, 21]
 N = 4
 
 
@@ -203,4 +203,25 @@ class Board:
 
     def run_move(self, board):
         self.board = board
+        self.display()
+
+    def eat(self, player, eat_index):
+        num_of_stones = self.board[eat_index]
+        self.board[eat_index] = 0
+        if player == 'red':
+            self.board[0] += num_of_stones
+        elif player == 'blue':
+            self.board[6] += num_of_stones
+        self.display()
+
+    # When game is over, clear the remaining stones in hole and store them in coresponding mancalas
+    def clear_board(self):
+        for index in RED_HOLES:
+            if self.board[index] != 0:
+                self.board[0] = self.board[index]
+                self.board[index] = 0
+        for index in BLUE_HOLES:
+            if self.board[index] != 0:
+                self.board[6] = self.board[index]
+                self.board[index] = 0
         self.display()
