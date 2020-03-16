@@ -1,5 +1,6 @@
 import random
-from board import Board, RED_HOLES, RED_MANCALA, BLUE_MANCALA, BLUE_HOLES, N
+from board import Board, RED_HOLES, BLUE_HOLES, N
+
 
 def heuristics1(board, player):
     board = board.board
@@ -29,8 +30,7 @@ def get_most_stones_index(board, index_list):
     for index in index_list:
         if board[index] > stones:
             hole_index = index
-            stones = board[index]
-    return hole_index, stones
+    return hole_index
 
 
 def calculate_score(board):
@@ -75,11 +75,11 @@ def alpha_beta(depth, board, player, heuristics, alpha=-80, beta=80):
     global count
     count +=1
     i = 0 # avoid cut less than 10
-    board.pretty()
     if heuristics == 1:
         heuristics_score = heuristics1(board, 'red')
     else :
         heuristics_score = heuristics2(board, 'red')
+    # board.pretty()
     # print('Node: {}'.format(count))
     # print("payoff {}:".format(player), heuristics_score)
     if depth == 0 or is_game_over(board.board):
@@ -87,6 +87,7 @@ def alpha_beta(depth, board, player, heuristics, alpha=-80, beta=80):
     if player == 'red':
         best_value = [-20*N, None]  # best_value (score, move)
         max_moves = get_available_moves(board.board, 'red')
+        random.shuffle(max_moves)
         for move in max_moves:
             cw_move_result = board.red_moves(index=move) # clockwise move
             ccw_move_result = board.red_moves(index=move, clockwise=False) # counter-clockwise move
@@ -102,6 +103,7 @@ def alpha_beta(depth, board, player, heuristics, alpha=-80, beta=80):
     elif player == 'blue':
         best_value = [20*N, None]
         min_moves = get_available_moves(board.board, 'blue')
+        random.shuffle(min_moves)
         for move in min_moves:
             cw_move_result = board.red_moves(index=move)  # clockwise move
             ccw_move_result = board.red_moves(index=move, clockwise=False)  # counter-clockwise move
@@ -178,7 +180,7 @@ def mini_max(depth, board, player, heuristics):
 
 
 
-def run_game():
+def player_vs_AI():
     board = Board()
     print('Initial Board View:')
     board.display()
@@ -242,7 +244,66 @@ def run_game():
     board.clear_board()
     calculate_score(board.board)
 
+
+def AI_vs_AI():
+    board = Board()
+    print('Initial Board View:')
+    board.display()
+    global first_player
+    first_player = random.choice(['red', 'blue'])
+    while not is_game_over(board.board):
+        if first_player == 'blue':
+            print('AI (Blue) turn: ', end='')
+            move_index = alpha_beta(2, board, player='blue', heuristics=1)[1]  # mini_max return (payoff, move_index)
+            if move_index is None:
+                break
+            print('Moving index {}'.format(move_index))
+            move_result = board.blue_moves(index=move_index)
+            board.run_move(move_result[0])
+
+            if move_result[3] is not None:
+                most_stones_index = get_most_stones_index(board.board, move_result[3])
+                print('AI (Blue) eating {}'.format(most_stones_index))
+                board.eat(player='blue', eat_index=most_stones_index)
+                first_player = 'blue'
+
+            if move_result[2]:  # play again is true
+                print('AI (Blue) plays again!')
+                first_player = 'blue'
+            else:
+                first_player = 'red'
+
+        elif first_player == 'red':
+            print('AI (Red) turn: ', end='')
+            move_index = alpha_beta(2, board, player='red', heuristics=2)[1] # mini_max return (payoff, move_index)
+            if move_index is None:
+                break
+            print('Moving index {}'.format(move_index))
+            print(move_index)
+            move_result = board.red_moves(index=move_index)
+            board.run_move(move_result[0])
+
+            if move_result[3] is not None:
+                most_stones_index = get_most_stones_index(board.board, move_result[3])
+                print('AI (Red) eating {}'.format(most_stones_index))
+                board.eat(player='red', eat_index=most_stones_index)
+                first_player = 'red'
+
+            if move_result[2]:  # play again is true
+                print('AI (Red) plays again!')
+                first_player = 'red'
+            else:
+                first_player = 'blue'
+        else:
+            print('ERROR INPUT @first player {} '.format(first_player))
+            break
+
+    print('GAME OVER!')
+    board.clear_board()
+    calculate_score(board.board)
+
 BOARD = Board()
 # print(mini_max(2,board=BOARD, player='red', heuristics=2))
 # print(alpha_beta(2,board=BOARD, player='red', heuristics=1))
-run_game()
+# player_vs_AI()
+# AI_vs_AI()

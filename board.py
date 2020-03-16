@@ -218,10 +218,10 @@ class Board:
     def clear_board(self):
         for index in RED_HOLES:
             if self.board[index] != 0:
-                self.board[0] = self.board[index]
+                self.board[0] += self.board[index]
                 self.board[index] = 0
         for index in BLUE_HOLES:
             if self.board[index] != 0:
-                self.board[6] = self.board[index]
+                self.board[6] += self.board[index]
                 self.board[index] = 0
         self.display()
